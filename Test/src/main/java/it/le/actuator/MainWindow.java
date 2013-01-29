@@ -1,8 +1,24 @@
 package it.le.actuator;
 
+import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.event.ActionEvent;
+import java.io.StringWriter;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
 
 import com.rapplogic.xbee.api.PacketListener;
 import com.rapplogic.xbee.api.XBee;
@@ -12,18 +28,6 @@ import com.rapplogic.xbee.api.XBeeResponse;
 import com.rapplogic.xbee.api.XBeeTimeoutException;
 import com.rapplogic.xbee.api.wpan.RxResponse16;
 import com.rapplogic.xbee.api.wpan.TxRequest64;
-
-import javax.swing.JButton;
-import java.awt.BorderLayout;
-import javax.swing.JProgressBar;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.io.StringWriter;
-
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.JPanel;
-import javax.swing.JLabel;
 
 public class MainWindow implements PacketListener {
 
@@ -39,27 +43,61 @@ public class MainWindow implements PacketListener {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					MainWindow window = new MainWindow();
-					window.frmControlloCupola.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+		// create Options object
+		Options options = new Options();
+
+		// add t option
+		options.addOption("p", true, "Porta Seriale");
+		options.addOption("b", true, "BaudRate");
+		CommandLineParser parser = new PosixParser();
+		String port;// ="/dev/tty.usbserial-A600KLBT";
+		int baud = 9600;
+		try {
+			CommandLine cmd = parser.parse(options, args);
+			port = cmd.getOptionValue("p");
+			if (port == null) {
+				showHelp(options);
+				System.exit(0);
 			}
-		});
+			String baudAsString = cmd.getOptionValue("b");
+			if (baudAsString != null) {
+				baud = Integer.parseInt(baudAsString);
+			}
+
+			final MainWindow window = new MainWindow(port, baud);
+			EventQueue.invokeLater(new Runnable() {
+				public void run() {
+					window.frmControlloCupola.setVisible(true);
+				}
+			});
+		} catch (ParseException e1) {
+			System.err.println("Parsing failed.  Reason: " + e1.getMessage());
+			showHelp(options);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			System.exit(-1);
+		}
+	}
+
+	private static void showHelp(Options options) {
+		HelpFormatter formatter = new HelpFormatter();
+		formatter.printHelp("ant", options);
 	}
 
 	/**
 	 * Create the application.
 	 * 
+	 * @param serialPort
+	 *            TODO
+	 * @param baudRate
+	 *            TODO
+	 * 
 	 * @throws Exception
 	 */
-	public MainWindow() throws Exception {
+	public MainWindow(String serialPort, int baudRate) throws Exception {
 		initialize();
 		this.xbee = new XBee();
-		xbee.open("/dev/tty.usbserial-A600KLBT", 9600);
+		xbee.open(serialPort, baudRate);
 		xbee.addPacketListener(this);
 	}
 
@@ -80,18 +118,18 @@ public class MainWindow implements PacketListener {
 		this.btnClose = new JButton("Chiudi");
 		btnClose.setAction(actionClose);
 		frmControlloCupola.getContentPane().add(btnClose, BorderLayout.EAST);
-		
+
 		panel = new JPanel();
 		frmControlloCupola.getContentPane().add(panel, BorderLayout.CENTER);
-				panel.setLayout(new BorderLayout(0, 0));
-		
-				this.progressBar = new JProgressBar();
-				panel.add(progressBar, BorderLayout.CENTER);
-				progressBar.setMaximum(10);
-				
-				lblNewLabel = new JLabel("New label");
-				panel.add(lblNewLabel, BorderLayout.SOUTH);
-				progressBar.setVisible(false);
+		panel.setLayout(new BorderLayout(0, 0));
+
+		this.progressBar = new JProgressBar();
+		panel.add(progressBar, BorderLayout.CENTER);
+		progressBar.setMaximum(10);
+
+		lblNewLabel = new JLabel("New label");
+		panel.add(lblNewLabel, BorderLayout.SOUTH);
+		progressBar.setVisible(false);
 	}
 
 	@Override
