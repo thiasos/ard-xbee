@@ -38,6 +38,7 @@ public class MainWindow implements PacketListener {
 	private JButton btnOpen;
 	private JButton btnClose;
 	private JProgressBar progressBar;
+	private final int iterations;
 
 	/**
 	 * Launch the application.
@@ -49,9 +50,11 @@ public class MainWindow implements PacketListener {
 		// add t option
 		options.addOption("p", true, "Porta Seriale");
 		options.addOption("b", true, "BaudRate");
+		options.addOption("i", true, "Iterazioni");
 		CommandLineParser parser = new PosixParser();
 		String port;// ="/dev/tty.usbserial-A600KLBT";
 		int baud = 9600;
+		int i = 1;
 		try {
 			CommandLine cmd = parser.parse(options, args);
 			port = cmd.getOptionValue("p");
@@ -63,8 +66,12 @@ public class MainWindow implements PacketListener {
 			if (baudAsString != null) {
 				baud = Integer.parseInt(baudAsString);
 			}
+			String iAsString = cmd.getOptionValue("i");
+			if (iAsString != null) {
+				i = Integer.parseInt(iAsString);
+			}
 
-			final MainWindow window = new MainWindow(port, baud);
+			final MainWindow window = new MainWindow(port, baud, i);
 			EventQueue.invokeLater(new Runnable() {
 				public void run() {
 					window.frmControlloCupola.setVisible(true);
@@ -91,10 +98,12 @@ public class MainWindow implements PacketListener {
 	 *            TODO
 	 * @param baudRate
 	 *            TODO
+	 * @param iterations
 	 * 
 	 * @throws Exception
 	 */
-	public MainWindow(String serialPort, int baudRate) throws Exception {
+	public MainWindow(String serialPort, int baudRate, int iterations) throws Exception {
+		this.iterations = iterations;
 		initialize();
 		this.xbee = new XBee();
 		xbee.open(serialPort, baudRate);
@@ -178,7 +187,9 @@ public class MainWindow implements PacketListener {
 
 		public void actionPerformed(ActionEvent e) {
 			try {
-				switchPin(pin);
+				for (int i = 0; i < iterations; i++) {
+					switchPin(pin);
+				}
 			} catch (XBeeTimeoutException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
